@@ -21,6 +21,12 @@ There are currently no plans to support
 - non-ESP32 devices 
 - other than the standard `esp_lcd` displays
 - other buses than SPI
+- other displays than ST7789 as I do not possess any to test
+
+The final objective of this project is to support the camp badges for [Fri3d Camp](https://www.fri3d.be) and as such
+certain functionality you'd expect from a display driver might be missing as they are not necessary for that project.
+
+Don't hesitate to create a pull request to add the required functionality. 
 
 ## Building
 
@@ -39,6 +45,13 @@ Compile adding the `USER_C_MODULES` parameter to the `make` command.
 make USER_C_MODULES=/path/to/lvgl_esp32_mpy/micropython.cmake <other options>
 ```
 
+## Missing things
+
+Things I'll probably still implement at some point:
+
+- There is no deinit functionality, once it's loaded, it's there to stay
+- Rotation of displays
+
 ## Supported versions
 
 - LVGL: 9.1
@@ -50,4 +63,5 @@ make USER_C_MODULES=/path/to/lvgl_esp32_mpy/micropython.cmake <other options>
 A lot of ideas and/or work were borrowed from
 
 - [kdschlosser](https://github.com/kdschlosser/lvgl_micropython)'s LVGL binding
+- [russhughes](https://github.com/russhughes/s3lcd)'s s3lcd
 - The original [lv_binding_micropython](https://github.com/lvgl/lv_binding_micropython)
