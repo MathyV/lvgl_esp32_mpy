@@ -56,13 +56,8 @@ static void clear(lvgl_esp32_Display_obj_t *self)
 
     // Create a temporary empty buffer of only one line of pixels so this will also work on memory-constrained devices
     size_t buf_size = self->width;
-    uint16_t *buf = heap_caps_malloc(buf_size * sizeof(uint16_t), MALLOC_CAP_DMA);
+    uint16_t *buf = heap_caps_calloc(1, buf_size * sizeof(uint16_t), MALLOC_CAP_DMA);
     assert(buf);
-
-    for (int i = 0; i < buf_size; i++)
-    {
-        buf[i] = 0;
-    }
 
     // Blit lines to the screen
     for (int line = 0; line < self->height; line++)
@@ -71,7 +66,7 @@ static void clear(lvgl_esp32_Display_obj_t *self)
     }
 
     // Release the buffer
-    free(buf);
+    heap_caps_free(buf);
 }
 
 static mp_obj_t lvgl_esp32_Display_init(mp_obj_t self_ptr)
