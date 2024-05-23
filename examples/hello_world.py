@@ -3,6 +3,7 @@ from .hardware import display
 import lvgl as lv
 import lvgl_esp32
 
+display.init()
 wrapper = lvgl_esp32.Wrapper(display)
 wrapper.init()
 
