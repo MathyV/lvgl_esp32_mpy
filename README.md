@@ -28,6 +28,14 @@ certain functionality you'd expect from a display driver might be missing as the
 
 Don't hesitate to create a pull request to add the required functionality. 
 
+## Board configuration
+
+This wrapper requires that you activate the following options in your `sdkconfig.board`:
+
+```
+# lv_tick_inc is called from an esp_timer configured with interrupts
+CONFIG_ESP_TIMER_SUPPORTS_ISR_DISPATCH_METHOD=y
+```
 ## Building
 
 First follow the MicroPython documentation to create a build for your device without this module and verify it is
