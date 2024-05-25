@@ -29,7 +29,6 @@ static void tick(void *arg)
     lv_tick_inc(LVGL_TICK_PERIOD_MS);
 }
 
-
 static mp_obj_t lvgl_esp32_Wrapper_init(mp_obj_t self_ptr)
 {
     lvgl_esp32_Wrapper_obj_t *self = MP_OBJ_TO_PTR(self_ptr);
@@ -38,6 +37,7 @@ static mp_obj_t lvgl_esp32_Wrapper_init(mp_obj_t self_ptr)
 
     if (!lv_is_initialized())
     {
+        ESP_LOGI(TAG, "Initializing LVGL library");
         lv_init();
     }
 
@@ -60,7 +60,6 @@ static mp_obj_t lvgl_esp32_Wrapper_init(mp_obj_t self_ptr)
     lv_display_set_flush_cb(self->lv_display, flush_cb);
     lv_display_set_user_data(self->lv_display, self);
 
-
     ESP_LOGI(TAG, "Installing LVGL tick timer");
     const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &tick,
@@ -74,6 +73,54 @@ static mp_obj_t lvgl_esp32_Wrapper_init(mp_obj_t self_ptr)
     return mp_obj_new_int_from_uint(0);
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(lvgl_esp32_Wrapper_init_obj, lvgl_esp32_Wrapper_init);
+
+static mp_obj_t lvgl_esp32_Wrapper_deinit(mp_obj_t self_ptr)
+{
+    lvgl_esp32_Wrapper_obj_t *self = MP_OBJ_TO_PTR(self_ptr);
+
+    ESP_LOGI(TAG, "Deinitializing LVGL Wrapper");
+    if (self->timer_tick != NULL)
+    {
+        ESP_LOGI(TAG, "Disabling LVGL tick timer");
+        ESP_ERROR_CHECK(esp_timer_stop(self->timer_tick));
+        ESP_ERROR_CHECK(esp_timer_delete(self->timer_tick));
+        self->timer_tick = NULL;
+    }
+
+    ESP_LOGI(TAG, "Disabling callback functions");
+    self->display->transfer_done_cb = NULL;
+    self->display->transfer_done_user_data = NULL;
+
+    if (self->lv_display != NULL)
+    {
+        ESP_LOGI(TAG, "Deleting LVGL display");
+        lv_display_delete(self->lv_display);
+        self->lv_display = NULL;
+    }
+
+    self->buf_size = 0;
+    if (self->buf1 != NULL)
+    {
+        ESP_LOGI(TAG, "Freeing first display buffer");
+        heap_caps_free(self->buf1);
+        self->buf1 = NULL;
+    }
+    if (self->buf2 != NULL)
+    {
+        ESP_LOGI(TAG, "Freeing second display buffer");
+        heap_caps_free(self->buf2);
+        self->buf2 = NULL;
+    }
+
+    if (lv_is_initialized())
+    {
+        ESP_LOGI(TAG, "Deinitializing LVGL");
+        lv_deinit();
+    }
+
+    return mp_obj_new_int_from_uint(0);
+}
+static MP_DEFINE_CONST_FUN_OBJ_1(lvgl_esp32_Wrapper_deinit_obj, lvgl_esp32_Wrapper_deinit);
 
 static mp_obj_t lvgl_esp32_Wrapper_make_new(
     const mp_obj_type_t *type,
@@ -94,7 +141,7 @@ static mp_obj_t lvgl_esp32_Wrapper_make_new(
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    lvgl_esp32_Wrapper_obj_t *self = mp_obj_malloc(lvgl_esp32_Wrapper_obj_t, type);
+    lvgl_esp32_Wrapper_obj_t *self = m_new_obj_with_finaliser(lvgl_esp32_Wrapper_obj_t);
     self->base.type = &lvgl_esp32_Wrapper_type;
 
     if (mp_obj_get_type(args[ARG_display].u_obj) != &lvgl_esp32_Display_type)
@@ -115,7 +162,9 @@ static mp_obj_t lvgl_esp32_Wrapper_make_new(
 }
 
 static const mp_rom_map_elem_t lvgl_esp32_Wrapper_locals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&lvgl_esp32_Wrapper_init_obj) }
+    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&lvgl_esp32_Wrapper_init_obj) },
+    { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&lvgl_esp32_Wrapper_deinit_obj) },
+    { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&lvgl_esp32_Wrapper_deinit_obj) },
 };
 
 static MP_DEFINE_CONST_DICT(lvgl_esp32_Wrapper_locals, lvgl_esp32_Wrapper_locals_table);

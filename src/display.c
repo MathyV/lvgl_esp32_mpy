@@ -57,6 +57,11 @@ static void clear(lvgl_esp32_Display_obj_t *self)
     // Create a temporary empty buffer of only one line of pixels so this will also work on memory-constrained devices
     size_t buf_size = self->width;
     uint16_t *buf = heap_caps_calloc(1, buf_size * sizeof(uint16_t), MALLOC_CAP_DMA);
+
+    for (int i = 0; i < buf_size; i++)
+    {
+        buf[i] = 0xFF;
+    }
     assert(buf);
 
     // Blit lines to the screen
@@ -74,7 +79,6 @@ static mp_obj_t lvgl_esp32_Display_init(mp_obj_t self_ptr)
     lvgl_esp32_Display_obj_t *self = MP_OBJ_TO_PTR(self_ptr);
 
     ESP_LOGI(TAG, "Setting up panel IO");
-    esp_lcd_panel_io_handle_t io_handle = NULL;
     esp_lcd_panel_io_spi_config_t io_config = {
         .dc_gpio_num = self->dc,
         .cs_gpio_num = self->cs,
@@ -91,18 +95,18 @@ static mp_obj_t lvgl_esp32_Display_init(mp_obj_t self_ptr)
         esp_lcd_new_panel_io_spi(
             (esp_lcd_spi_bus_handle_t) machine_hw_spi_get_host(self->spi),
             &io_config,
-            &io_handle
+            &self->io_handle
         )
     );
 
+    ESP_LOGI(TAG, "Setting up ST7789 panel driver");
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = self->reset,
         .rgb_ele_order = self->bgr ? LCD_RGB_ELEMENT_ORDER_BGR : LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
     };
 
-    ESP_LOGI(TAG, "Setting up ST7789 panel driver");
-    ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_config, &self->panel));
+    ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(self->io_handle, &panel_config, &self->panel));
     ESP_ERROR_CHECK(esp_lcd_panel_reset(self->panel));
     ESP_ERROR_CHECK(esp_lcd_panel_init(self->panel));
 
@@ -112,13 +116,35 @@ static mp_obj_t lvgl_esp32_Display_init(mp_obj_t self_ptr)
 
     clear(self);
 
-    // user can flush pre-defined pattern to the screen before we turn on the screen or backlight
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(self->panel, true));
 
     return mp_obj_new_int_from_uint(0);
 }
-
 static MP_DEFINE_CONST_FUN_OBJ_1(lvgl_esp32_Display_init_obj, lvgl_esp32_Display_init);
+
+static mp_obj_t lvgl_esp32_Display_deinit(mp_obj_t self_ptr)
+{
+    lvgl_esp32_Display_obj_t *self = MP_OBJ_TO_PTR(self_ptr);
+
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(self->panel, false));
+
+    if(self->panel != NULL)
+    {
+        ESP_LOGI(TAG, "Deinitializing ST7789 panel driver");
+        ESP_ERROR_CHECK(esp_lcd_panel_del(self->panel));
+        self->panel = NULL;
+    }
+
+    if(self->io_handle != NULL)
+    {
+        ESP_LOGI(TAG, "Deinitializing panel IO");
+        ESP_ERROR_CHECK(esp_lcd_panel_io_del(self->io_handle));
+        self->io_handle = NULL;
+    }
+
+    return mp_obj_new_int_from_uint(0);
+}
+static MP_DEFINE_CONST_FUN_OBJ_1(lvgl_esp32_Display_deinit_obj, lvgl_esp32_Display_deinit);
 
 static mp_obj_t lvgl_esp32_Display_make_new(
     const mp_obj_type_t *type,
@@ -161,7 +187,7 @@ static mp_obj_t lvgl_esp32_Display_make_new(
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    lvgl_esp32_Display_obj_t *self = mp_obj_malloc(lvgl_esp32_Display_obj_t, type);
+    lvgl_esp32_Display_obj_t *self = m_new_obj_with_finaliser(lvgl_esp32_Display_obj_t);
     self->base.type = &lvgl_esp32_Display_type;
 
     self->width = args[ARG_width].u_int;
@@ -183,12 +209,15 @@ static mp_obj_t lvgl_esp32_Display_make_new(
     self->transfer_done_user_data = NULL;
 
     self->panel = NULL;
+    self->io_handle = NULL;
 
     return MP_OBJ_FROM_PTR(self);
 }
 
 static const mp_rom_map_elem_t lvgl_esp32_Display_locals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&lvgl_esp32_Display_init_obj) }
+    { MP_ROM_QSTR(MP_QSTR_init), MP_ROM_PTR(&lvgl_esp32_Display_init_obj) },
+    { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&lvgl_esp32_Display_deinit_obj) },
+    { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&lvgl_esp32_Display_deinit_obj) },
 };
 
 static MP_DEFINE_CONST_DICT(lvgl_esp32_Display_locals, lvgl_esp32_Display_locals_table);

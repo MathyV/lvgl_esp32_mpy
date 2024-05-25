@@ -29,6 +29,7 @@ typedef struct lvgl_esp32_Display_obj_t
     void *transfer_done_user_data;
 
     esp_lcd_panel_handle_t panel;
+    esp_lcd_panel_io_handle_t io_handle;
 } lvgl_esp32_Display_obj_t;
 
 extern const mp_obj_type_t lvgl_esp32_Display_type;

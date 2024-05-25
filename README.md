@@ -57,7 +57,6 @@ make USER_C_MODULES=/path/to/lvgl_esp32_mpy/micropython.cmake <other options>
 
 Things I'll probably still implement at some point:
 
-- There is no deinit functionality, once it's loaded, it's there to stay
 - Rotation of displays
 
 ## Supported versions
