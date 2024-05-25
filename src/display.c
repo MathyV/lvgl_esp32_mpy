@@ -1,7 +1,6 @@
 #include "display.h"
 
 #include "py/runtime.h"
-#include "machine_hw_spi.h"
 
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
@@ -58,10 +57,6 @@ static void clear(lvgl_esp32_Display_obj_t *self)
     size_t buf_size = self->width;
     uint16_t *buf = heap_caps_calloc(1, buf_size * sizeof(uint16_t), MALLOC_CAP_DMA);
 
-    for (int i = 0; i < buf_size; i++)
-    {
-        buf[i] = 0xFF;
-    }
     assert(buf);
 
     // Blit lines to the screen
@@ -93,11 +88,14 @@ static mp_obj_t lvgl_esp32_Display_init(mp_obj_t self_ptr)
 
     ESP_ERROR_CHECK(
         esp_lcd_new_panel_io_spi(
-            (esp_lcd_spi_bus_handle_t) machine_hw_spi_get_host(self->spi),
+            (esp_lcd_spi_bus_handle_t) self->spi->spi_host_device,
             &io_config,
             &self->io_handle
         )
     );
+
+    // HACK
+    self->spi->device_count++;
 
     ESP_LOGI(TAG, "Setting up ST7789 panel driver");
     esp_lcd_panel_dev_config_t panel_config = {
@@ -126,11 +124,10 @@ static mp_obj_t lvgl_esp32_Display_deinit(mp_obj_t self_ptr)
 {
     lvgl_esp32_Display_obj_t *self = MP_OBJ_TO_PTR(self_ptr);
 
-    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(self->panel, false));
-
     if(self->panel != NULL)
     {
         ESP_LOGI(TAG, "Deinitializing ST7789 panel driver");
+        ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(self->panel, false));
         ESP_ERROR_CHECK(esp_lcd_panel_del(self->panel));
         self->panel = NULL;
     }
@@ -140,6 +137,12 @@ static mp_obj_t lvgl_esp32_Display_deinit(mp_obj_t self_ptr)
         ESP_LOGI(TAG, "Deinitializing panel IO");
         ESP_ERROR_CHECK(esp_lcd_panel_io_del(self->io_handle));
         self->io_handle = NULL;
+
+        // HACK
+        self->spi->device_count--;
+
+        // We call deinit on spi in case it was (unsuccessfully) deleted earlier
+        lvgl_esp32_SPI_internal_deinit(self->spi);
     }
 
     return mp_obj_new_int_from_uint(0);
@@ -157,7 +160,7 @@ static mp_obj_t lvgl_esp32_Display_make_new(
     {
         ARG_width,          // width of the display
         ARG_height,         // height of the display
-        ARG_spi,            // configured machine.SPI instance
+        ARG_spi,            // configured SPI instance
         ARG_reset,          // RESET pin number
         ARG_dc,             // DC pin number
         ARG_cs,             // CS pin number
@@ -193,7 +196,7 @@ static mp_obj_t lvgl_esp32_Display_make_new(
     self->width = args[ARG_width].u_int;
     self->height = args[ARG_height].u_int;
 
-    self->spi = (mp_obj_base_t *) MP_OBJ_TO_PTR(args[ARG_spi].u_obj);
+    self->spi = (lvgl_esp32_SPI_obj_t *) MP_OBJ_TO_PTR(args[ARG_spi].u_obj);
     self->reset = args[ARG_reset].u_int;
     self->dc = args[ARG_dc].u_int;
     self->cs = args[ARG_cs].u_int;

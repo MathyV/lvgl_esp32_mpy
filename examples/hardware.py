@@ -1,14 +1,14 @@
-import machine
 import lvgl_esp32
 
 # Adapt these values for your own configuration
-spi = machine.SPI(
+spi = lvgl_esp32.SPI(
     2,
     baudrate=80_000_000,
-    sck=machine.Pin(7, machine.Pin.OUT),
-    mosi=machine.Pin(6, machine.Pin.OUT),
-    miso=machine.Pin(8, machine.Pin.IN),
+    sck=7,
+    mosi=6,
+    miso=8,
 )
+spi.init()
 
 display = lvgl_esp32.Display(
     spi=spi,
@@ -24,5 +24,4 @@ display = lvgl_esp32.Display(
     cs=5,
     pixel_clock=20_000_000,
 )
-
 display.init()
