@@ -54,7 +54,7 @@ add_custom_command(
             ${LVGL_LVGL_H}
             > ${LVGL_MPY} || (rm -f ${LVGL_MPY} && /bin/false)
     DEPENDS
-        ${LVGL_BINDINGS_DIR}/gen/gen_mpy.py
+        ${LVGL_GEN_MPY}
         ${LVGL_MPY_PP}
     COMMAND_EXPAND_LISTS
 )
