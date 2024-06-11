@@ -190,8 +190,7 @@ static mp_obj_t lvgl_esp32_Display_make_new(
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    lvgl_esp32_Display_obj_t *self = m_new_obj_with_finaliser(lvgl_esp32_Display_obj_t);
-    self->base.type = &lvgl_esp32_Display_type;
+    lvgl_esp32_Display_obj_t *self = mp_obj_malloc_with_finaliser(lvgl_esp32_Display_obj_t, &lvgl_esp32_Display_type);
 
     self->width = args[ARG_width].u_int;
     self->height = args[ARG_height].u_int;
