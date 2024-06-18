@@ -66,8 +66,8 @@ Things I'll probably still implement at some point:
 ## Supported versions
 
 - LVGL: 9.1
-- MicroPython: 1.22.2
-- ESP-IDF: 5.1.2
+- MicroPython: 1.23.0
+- ESP-IDF: 5.2.2
 
 ## Acknowledgements
 
