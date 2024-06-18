@@ -53,6 +53,10 @@ Compile adding the `USER_C_MODULES` parameter to the `make` command.
 make USER_C_MODULES=/path/to/lvgl_esp32_mpy/micropython.cmake <other options>
 ```
 
+## Broken things
+
+* [Soft-reboots are not working](https://github.com/lvgl/lv_binding_micropython/issues/343) 
+
 ## Missing things
 
 Things I'll probably still implement at some point:
