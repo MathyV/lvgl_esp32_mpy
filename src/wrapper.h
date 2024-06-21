@@ -4,7 +4,6 @@
 #include "display.h"
 
 #include "lvgl.h"
-#include "esp_timer.h"
 #include "py/obj.h"
 
 typedef struct lvgl_esp32_Wrapper_obj_t
@@ -17,7 +16,6 @@ typedef struct lvgl_esp32_Wrapper_obj_t
     uint16_t *buf2;
 
     lv_display_t *lv_display;
-    esp_timer_handle_t timer_tick;
 } lvgl_esp32_Wrapper_obj_t;
 
 extern const mp_obj_type_t lvgl_esp32_Wrapper_type;

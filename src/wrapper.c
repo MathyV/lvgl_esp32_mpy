@@ -1,9 +1,8 @@
 #include "wrapper.h"
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "py/runtime.h"
-
-#define LVGL_TICK_PERIOD_MS     2
 
 static const char *TAG = "lvgl_esp32_wrapper";
 
@@ -24,9 +23,9 @@ static void transfer_done_cb(void *user_data)
     lv_disp_flush_ready(self->lv_display);
 }
 
-static void tick(void *arg)
+static uint32_t tick_get_cb()
 {
-    lv_tick_inc(LVGL_TICK_PERIOD_MS);
+    return esp_timer_get_time() / 1000;
 }
 
 static mp_obj_t lvgl_esp32_Wrapper_init(mp_obj_t self_ptr)
@@ -59,16 +58,7 @@ static mp_obj_t lvgl_esp32_Wrapper_init(mp_obj_t self_ptr)
     self->display->transfer_done_user_data = (void *) self;
     lv_display_set_flush_cb(self->lv_display, flush_cb);
     lv_display_set_user_data(self->lv_display, self);
-
-    ESP_LOGI(TAG, "Installing LVGL tick timer");
-    const esp_timer_create_args_t lvgl_tick_timer_args = {
-        .callback = &tick,
-        .dispatch_method = ESP_TIMER_ISR,
-        .name = "lvgl_tick"
-    };
-
-    ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &self->timer_tick));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(self->timer_tick, LVGL_TICK_PERIOD_MS * 1000));
+    lv_tick_set_cb(tick_get_cb);
 
     return mp_obj_new_int_from_uint(0);
 }
@@ -79,15 +69,9 @@ static mp_obj_t lvgl_esp32_Wrapper_deinit(mp_obj_t self_ptr)
     lvgl_esp32_Wrapper_obj_t *self = MP_OBJ_TO_PTR(self_ptr);
 
     ESP_LOGI(TAG, "Deinitializing LVGL Wrapper");
-    if (self->timer_tick != NULL)
-    {
-        ESP_LOGI(TAG, "Disabling LVGL tick timer");
-        ESP_ERROR_CHECK(esp_timer_stop(self->timer_tick));
-        ESP_ERROR_CHECK(esp_timer_delete(self->timer_tick));
-        self->timer_tick = NULL;
-    }
 
     ESP_LOGI(TAG, "Disabling callback functions");
+    lv_tick_set_cb(NULL);
     self->display->transfer_done_cb = NULL;
     self->display->transfer_done_user_data = NULL;
 
@@ -155,7 +139,6 @@ static mp_obj_t lvgl_esp32_Wrapper_make_new(
     self->buf2 = NULL;
 
     self->lv_display = NULL;
-    self->timer_tick = NULL;
 
     return MP_OBJ_FROM_PTR(self);
 }
