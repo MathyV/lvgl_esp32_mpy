@@ -61,7 +61,9 @@ add_custom_command(
 
 # Unfortunately IDF requires all files to be present during configuration, but these only get written during the
 # build, so we temporarily write empty files so that IDF is happy
-file(WRITE ${LVGL_MPY} "")
+if (NOT EXISTS ${LVGL_MPY})
+    file(WRITE ${LVGL_MPY} "")
+endif ()
 
 add_library(usermod_lv_bindings INTERFACE)
 target_sources(usermod_lv_bindings INTERFACE ${LVGL_MPY})
