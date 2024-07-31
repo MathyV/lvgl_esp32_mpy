@@ -47,6 +47,14 @@ Once you are sure it does, clone the repository with recursive submodules, this 
 git clone --recurse-submodules <repository-url>
 ```
 
+Then you need to alter your partition table and add it into your `sdkconfig.board`, app partition (where binary micropython.bin exist) size need 0x260000 at least(depend on your project's manifest), following is an example partition table with 16MiB flash:
+```
+# Name,   Type, SubType, Offset,  Size, Flags  
+nvs,      data, nvs,     0x9000,  0x6000,  
+phy_init, data, phy,     0xf000,  0x1000,  
+factory,  app,  factory, 0x10000, 0x2F0000,  
+vfs,      data, fat,     0x300000, 0x700000,  
+```
 Compile adding the `USER_C_MODULES` parameter to the `make` command.
 
 ```shell
